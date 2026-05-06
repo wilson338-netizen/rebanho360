@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, text
 from pydantic import BaseModel
 from passlib.context import CryptContext
-import jwt
+from jose import jwt
 from datetime import datetime, timedelta
 import os
 import shutil
