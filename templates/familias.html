@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Famílias da Igreja</title>
+
+<style>
+
+body{
+font-family: Arial;
+background:#f4f6f8;
+padding:40px;
+}
+
+h1{
+color:#0a3d62;
+}
+
+table{
+width:100%;
+background:white;
+border-collapse:collapse;
+}
+
+th,td{
+padding:12px;
+border-bottom:1px solid #ddd;
+text-align:left;
+}
+
+th{
+background:#0a3d62;
+color:white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Famílias da Igreja</h1>
+
+<table>
+
+<tr>
+<th>ID</th>
+<th>Família</th>
+<th>Telefone</th>
+<th>Endereço</th>
+</tr>
+
+{% for f in familias %}
+
+<tr>
+
+<td>{{f.id}}</td>
+
+<td>{{f.nome}}</td>
+
+<td>{{f.telefone}}</td>
+
+<td>{{f.endereco}}</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</body>
+</html>

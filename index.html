@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sistema de Atendimento SG</title>
+</head>
+<body>
+
+    <h2>Cadastrar Cliente</h2>
+
+    <input type="text" id="nome" placeholder="Nome"><br><br>
+    <input type="number" id="idade" placeholder="Idade"><br><br>
+    <input type="text" id="documento" placeholder="Documento"><br><br>
+
+    <button onclick="cadastrar()">Cadastrar</button>
+
+    <h3>Resultado:</h3>
+    <pre id="resultado"></pre>
+
+   <script>
+async function cadastrar() {
+    const nomeInput = document.getElementById("nome");
+    const idadeInput = document.getElementById("idade");
+    const documentoInput = document.getElementById("documento");
+
+    const response = await fetch("http://127.0.0.1:8000/clientes", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            nome: nomeInput.value,
+            idade: parseInt(idadeInput.value),
+            documento: documentoInput.value
+        })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+        alert("Cliente cadastrado com sucesso!");
+
+        // Limpar campos
+        nomeInput.value = "";
+        idadeInput.value = "";
+        documentoInput.value = "";
+
+    } else {
+        alert("Erro: " + data.detail);
+    }
+}
+</script>

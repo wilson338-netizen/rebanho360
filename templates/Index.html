@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sistema</title>
+</head>
+<body>
+    <h2>Bem-vindo {{ usuario.email }}</h2>
+    <a href="/logout">Sair</a>
+
+    <h3>Cadastrar Cliente</h3>
+    <form method="post" action="/clientes">
+        <input type="text" name="nome" placeholder="Nome" required>
+        <input type="number" name="idade" placeholder="Idade" required>
+        <input type="text" name="documento" placeholder="Documento" required>
+        <button type="submit">Cadastrar</button>
+    </form>
+
+    <h3>Clientes</h3>
+    <ul>
+        {% for cliente in clientes %}
+            <li>{{ cliente.nome }} - {{ cliente.idade }} - {{ cliente.documento }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

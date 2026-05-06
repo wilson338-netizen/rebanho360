@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard Pastoral</title>
+
+<style>
+
+body{
+font-family: Arial;
+background:#f4f6f9;
+margin:40px;
+}
+
+h1{
+color:#2c3e50;
+}
+
+.cards{
+display:flex;
+gap:20px;
+margin-bottom:40px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:10px;
+width:200px;
+box-shadow:0px 3px 10px rgba(0,0,0,0.1);
+}
+
+.numero{
+font-size:30px;
+font-weight:bold;
+color:#0a3d62;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>📊 Dashboard Pastoral</h1>
+
+<div class="cards">
+
+<div class="card">
+<div>Total de Membros</div>
+<div class="numero">{{total_membros}}</div>
+</div>
+
+<div class="card">
+<div>Famílias</div>
+<div class="numero">{{total_familias}}</div>
+</div>
+
+<div class="card">
+<div>Atendimentos</div>
+<div class="numero">{{total_atendimentos}}</div>
+</div>
+
+</div>
+
+<h2>🎂 Aniversariantes do mês</h2>
+
+<ul>
+
+{% for pessoa in aniversariantes %}
+
+<li>{{pessoa.nome}} - {{pessoa.data}}</li>
+
+{% endfor %}
+
+</ul>
+
+</body>
+</html>

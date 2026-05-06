@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rebanho 360 - Membros</title>
+</head>
+
+<body>
+
+<h1>Rebanho 360 - Membros da Igreja</h1>
+
+<table border="1">
+
+<tr>
+<th>ID</th>
+<th>Nome</th>
+<th>Telefone</th>
+<th>Carteirinha</th>
+</tr>
+
+{% for membro in membros %}
+
+<tr>
+<td>{{ membro.id }}</td>
+<td>{{ membro.nome }}</td>
+<td>{{ membro.telefone }}</td>
+<td>
+<a href="/carteirinha/{{ membro.id }}" target="_blank">
+Gerar Carteirinha
+</a>
+</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</body>
+</html>

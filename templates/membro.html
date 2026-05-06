@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+<title>Membro</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6f8;
+padding:40px;
+}
+
+.card{
+background:white;
+width:450px;
+margin:auto;
+padding:30px;
+border-radius:10px;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+text-align:center;
+}
+
+img{
+width:150px;
+border-radius:100px;
+margin-bottom:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<img src="/static/fotos/{{membro.foto}}">
+
+<h2>{{membro.nome}}</h2>
+
+<p><b>Telefone:</b> {{membro.telefone}}</p>
+
+<p><b>Endereço:</b> {{membro.endereco}}</p>
+
+</div>
+
+</body>
+
+</html>
