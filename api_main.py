@@ -225,17 +225,15 @@ def login(dados: dict):
         """), {
             "email": dados.get("email"),
             "senha": dados.get("senha")
-        }).fetchone()
+        }).mappings().fetchone()
 
-        # ❌ usuário não encontrado
         if not usuario:
             return {"erro": "Usuário inválido"}
 
-        # 🔥 CORREÇÃO AQUI (ACESSO POR ÍNDICE)
-        user_id = usuario[0]
-        tipo = usuario[1] if usuario[1] else "membro"
-        igreja_id = usuario[2]
-        membro_id = usuario[3]
+        user_id = usuario["id"]
+        tipo = usuario["tipo"] if usuario["tipo"] else "membro"
+        igreja_id = usuario["fk_igreja"]
+        membro_id = usuario["fk_membro"]
 
         token = criar_token({
             "user_id": user_id,
@@ -250,8 +248,11 @@ def login(dados: dict):
             "membro_id": membro_id,
             "igreja_id": igreja_id
         }
+
+        
     
-    
+
+
 # ==========================================
 # USUÁRIO LOGADO
 # ==========================================
