@@ -3184,27 +3184,61 @@ def listar_conversas(user=Depends(verificar_token)):
 
 
 
-@app.get("/setup")
-def setup_banco():
-    with engine.connect() as conn:
+@app.get("/setup_pro")
+def setup_pro():
+    try:
+        with engine.connect() as conn:
 
-        conn.execute(text("""
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id SERIAL PRIMARY KEY,
-            email TEXT,
-            senha TEXT,
-            tipo TEXT,
-            fk_igreja INTEGER,
-            fk_membro INTEGER
-        );
-        """))
+            # USUÁRIOS
+            conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                nome TEXT,
+                email TEXT UNIQUE,
+                senha TEXT,
+                tipo TEXT,
+                fk_igreja INT,
+                fk_membro INT
+            )
+            """))
 
-        conn.execute(text("""
-        INSERT INTO usuarios (email, senha, tipo)
-        VALUES ('admin@rebanho360.com', '123456', 'admin')
-        ON CONFLICT DO NOTHING;
-        """))
+            # MEMBROS
+            conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS membros (
+                id SERIAL PRIMARY KEY,
+                nome TEXT,
+                telefone TEXT,
+                email TEXT,
+                data_nascimento DATE,
+                fk_igreja INT
+            )
+            """))
 
-        conn.commit()
+            # IGREJAS
+            conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS igrejas (
+                id SERIAL PRIMARY KEY,
+                nome TEXT,
+                cidade TEXT,
+                estado TEXT
+            )
+            """))
 
-    return {"status": "Banco configurado"}
+            # FINANCEIRO
+            conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS financeiro (
+                id SERIAL PRIMARY KEY,
+                tipo TEXT,
+                categoria TEXT,
+                valor FLOAT,
+                data DATE,
+                fk_igreja INT
+            )
+            """))
+
+            conn.commit()
+
+        return {"status": "Banco criado com sucesso 🚀"}
+
+    except Exception as e:
+        return {"erro": str(e)}
