@@ -55,6 +55,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+from sqlalchemy import create_engine
+
+engine = create_engine(DATABASE_URL)
+
 # ==========================================
 # BASE URL (PRODUÇÃO)
 # ==========================================
@@ -254,7 +258,7 @@ def login(dados: dict):
         print("🔥 ERRO LOGIN:", str(e))
         return {"erro": str(e)}
     
-    
+
     
 
 
