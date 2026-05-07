@@ -23,69 +23,76 @@ class _LoginPageState extends State<LoginPage> {
 
   final String baseUrl = "${ApiService.baseUrl}";
 
-  void login() async {
+ void login() async {
+  try {
+    final response = await http.post(
+      Uri.parse("${ApiService.baseUrl}/login"),
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: jsonEncode({
+        "email": email.text.trim(),
+        "senha": senha.text.trim(),
+      }),
+    );
 
-    try {
+    print("STATUS: ${response.statusCode}");
+    print("BODY: ${response.body}");
 
-      final response = await http.post(
-        Uri.parse("$baseUrl/login"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "email": email.text,
-          "senha": senha.text
-        }),
-      );
+    final data = jsonDecode(response.body);
 
-      print("STATUS: ${response.statusCode}");
-      print("BODY: ${response.body}");
-
-      if (response.statusCode != 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro no login")),
-        );
-        return;
-      }
-
-     final data = jsonDecode(response.body);
-
-if (data["erro"] != null) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(data["erro"])),
-  );
-  return;
-}
-
-      String token = data["token"];
-      String tipo = data["tipo"] ?? "membro";
-      int membroId = data["membro_id"] ?? 0;
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString("token", token);
-
-      if (tipo == "membro") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AppMembro(membroId: membroId),
-          ),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomePage(tipoUsuario: tipo),
-          ),
-        );
-      }
-
-    } catch (e) {
-      print("ERRO LOGIN: $e");
-
+    // 🔥 TRATA ERRO DO BACKEND (mesmo com 200)
+    if (data["erro"] != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erro ao conectar com servidor")),
+        SnackBar(content: Text(data["erro"])),
+      );
+      return;
+    }
+
+    // 🔥 SE NÃO TEM TOKEN = ERRO
+    if (data["token"] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login inválido")),
+      );
+      return;
+    }
+
+    String token = data["token"];
+    String tipo = data["tipo"] ?? "membro";
+    int membroId = data["membro_id"] ?? 0;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("token", token);
+
+    print("TOKEN SALVO: $token");
+
+    if (tipo == "membro") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AppMembro(membroId: membroId),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomePage(tipoUsuario: tipo),
+        ),
       );
     }
+
+  } catch (e) {
+    print("ERRO LOGIN: $e");
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Erro ao conectar com servidor")),
+    );
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {

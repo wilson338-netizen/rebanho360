@@ -2,11 +2,10 @@
 # IMPORTAÇÕES
 # ==========================================
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Body
+from fastapi import FastAPI, HTTPException, UploadFile, File, Body, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import jwt
@@ -14,7 +13,7 @@ from datetime import datetime, timedelta, date
 import os
 import shutil
 
-print("🔥 DASHBOARD DETALHADO CARREGADO")
+print("🔥 REBANHO360 PRO FINAL INICIANDO...")
 
 # ==========================================
 # APP
@@ -23,12 +22,12 @@ print("🔥 DASHBOARD DETALHADO CARREGADO")
 app = FastAPI(title="Rebanho360 API FINAL")
 
 # ==========================================
-# CORS (OBRIGATÓRIO PARA FLUTTER WEB)
+# CORS
 # ==========================================
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # depois podemos restringir
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,7 +40,7 @@ app.add_middleware(
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ==========================================
-# SEGURANÇA
+# SEGURANÇA (PRO)
 # ==========================================
 
 SECRET_KEY = "rebanho360_super_secret_key_32chars"
@@ -49,7 +48,40 @@ ALGORITHM = "HS256"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def hash_senha(senha: str):
+    return pwd_context.hash(senha)
 
+def verificar_senha(senha, hash):
+    try:
+        return pwd_context.verify(senha, hash)
+    except:
+        return senha == hash  # compatibilidade antiga
+
+def criar_token(data: dict):
+    payload = data.copy()
+    payload["exp"] = datetime.utcnow() + timedelta(hours=12)
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def verificar_token(request: Request):
+    auth = request.headers.get("Authorization")
+
+    if not auth:
+        raise HTTPException(status_code=401, detail="Token não enviado")
+
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Formato inválido")
+
+    token = auth.replace("Bearer ", "")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+def somente_admin(user):
+    if user["tipo"] not in ["admin", "pastor"]:
+        raise HTTPException(status_code=403, detail="Sem permissão")
 
 # ==========================================
 # DATABASE
@@ -62,18 +94,12 @@ print("🔥 DATABASE_URL:", DATABASE_URL)
 if not DATABASE_URL:
     raise Exception("DATABASE_URL não configurado no Railway!")
 
-# Corrige formato do Railway (postgres -> postgresql)
 DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
 
-from sqlalchemy import create_engine
-
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True
-)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 # ==========================================
-# BASE URL (PRODUÇÃO)
+# BASE URL
 # ==========================================
 
 BASE_URL = os.getenv(
@@ -81,199 +107,110 @@ BASE_URL = os.getenv(
     "https://web-production-88cd7.up.railway.app"
 )
 
-
-
 # ==========================================
-# PERMISSÃO
+# SETUP PRO
 # ==========================================
 
-def somente_admin(user):
-    if user["tipo"] not in ["admin", "pastor"]:
-        raise HTTPException(status_code=403, detail="Sem permissão")
-    
+@app.get("/setup_pro")
+def setup_pro():
+    with engine.connect() as conn:
+
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS igrejas (
+            id SERIAL PRIMARY KEY,
+            nome TEXT,
+            cidade TEXT,
+            estado TEXT
+        );
+        """))
+
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            nome TEXT,
+            email TEXT UNIQUE,
+            senha TEXT,
+            tipo TEXT,
+            fk_igreja INTEGER
+        );
+        """))
+
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS membros (
+            id SERIAL PRIMARY KEY,
+            nome TEXT,
+            telefone TEXT,
+            fk_igreja INTEGER
+        );
+        """))
+
+        igreja = conn.execute(text("""
+        INSERT INTO igrejas (nome, cidade, estado)
+        VALUES ('Igreja Central', 'São Paulo', 'SP')
+        RETURNING id
+        """)).fetchone()
+
+        igreja_id = igreja[0]
+
+        senha_hash = hash_senha("123456")
+
+        conn.execute(text("""
+        INSERT INTO usuarios (nome, email, senha, tipo, fk_igreja)
+        VALUES ('Admin', :email, :senha, 'admin', :igreja)
+        ON CONFLICT (email) DO NOTHING
+        """), {
+            "email": "admin@rebanho360.com",
+            "senha": senha_hash,
+            "igreja": igreja_id
+        })
+
+        conn.commit()
+
+    return {"status": "BANCO PRO CRIADO"}
+
+# ==========================================
+# LOGIN
+# ==========================================
+
+@app.post("/login")
+def login(dados: dict):
+
+    with engine.connect() as conn:
+
+        usuario = conn.execute(text("""
+            SELECT id, email, senha, tipo, fk_igreja
+            FROM usuarios
+            WHERE email = :email
+        """), {"email": dados["email"]}).fetchone()
+
+        if not usuario:
+            return {"erro": "Usuário não encontrado"}
+
+        if not verificar_senha(dados["senha"], usuario.senha):
+            return {"erro": "Senha inválida"}
+
+        token = criar_token({
+            "user_id": usuario.id,
+            "tipo": usuario.tipo,
+            "igreja_id": usuario.fk_igreja
+        })
+
+        return {
+            "token": token,
+            "tipo": usuario.tipo,
+            "igreja_id": usuario.fk_igreja
+        }
 
 # ==========================================
 # MODELOS
 # ==========================================
-
-class UsuarioLogin(BaseModel):
-    email: str
-    senha: str
-
-class Financeiro(BaseModel):
-    membro_id: int | None = None
-    tipo: str
-    categoria: str
-    valor: float
-    origem: str
-    descricao: str
-    data: str
-
-class Agendamento(BaseModel):
-    nome: str
-    pedido: str
-    data: str
 
 class NovoUsuario(BaseModel):
     nome: str
     email: str
     senha: str
     tipo: str
-    membro_id: int
-
-class Aviso(BaseModel):
-    titulo: str
-    descricao: str
-
-class PedidoOracao(BaseModel):
-    membro_id: int
-    pedido: str
-
-class Mensagem(BaseModel):
-    de_membro: int
-    para_membro: int
-    mensagem: str
-
-class Voluntario(BaseModel):
-    membro_id: int
-    evento_id: int
-
-class Igreja(BaseModel):
-    nome: str
-    endereco: str
-    cidade: str
-
-class NovaCongregacao(BaseModel):
-    nome: str
-    endereco: str
-    tipo: str
-    fk_igreja: int
-
-
-# ==========================================
-# MODEL SEGMENTO
-# ==========================================
-from pydantic import BaseModel
-
-class Segmento(BaseModel):
-    nome: str
-
-# ==========================================
-# SEGURANÇA (JWT)
-# ==========================================
-
-from datetime import datetime, timedelta
-from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
-
-# 🔐 CONFIG
-SECRET_KEY = "sua_chave_secreta_aqui"  # 🔥 pode manter a sua atual
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 12
-
-# 🔐 SCHEMA DE SEGURANÇA
-security = HTTPBearer()
-
-
-
-# ==========================================
-# CRIAR TOKEN
-# ==========================================
-def criar_token(data: dict):
-    to_encode = data.copy()
-    to_encode.update({
-        "exp": datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    })
-
-    token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-    print("TOKEN GERADO:", token)  # debug opcional
-
-    return token
-
-
-## ==========================================
-# VALIDAR TOKEN (CORRIGIDO E BLINDADO)
-# ==========================================
-
-from fastapi import Request
-
-def verificar_token(request: Request):
-
-    auth = request.headers.get("Authorization")
-
-    print("HEADER RECEBIDO:", auth)  # 🔥 DEBUG
-
-    if not auth:
-        raise HTTPException(status_code=401, detail="Token não enviado")
-
-    if not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Formato inválido")
-
-    token = auth.replace("Bearer ", "")
-
-    print("TOKEN LIMPO:", token)  # 🔥 DEBUG
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
-        print("PAYLOAD:", payload)  # 🔥 DEBUG
-
-        return payload
-
-    except JWTError as e:
-        print("ERRO TOKEN:", e)
-        raise HTTPException(status_code=401, detail="Token inválido")
-    
-
-# ==========================================
-# LOGIN
-# ==========================================
-@app.post("/login")
-def login(dados: dict):
-
-    try:
-        with engine.connect() as conn:
-
-            usuario = conn.execute(text("""
-                SELECT id, tipo, fk_igreja, fk_membro
-                FROM usuarios
-                WHERE email = :email AND senha = :senha
-            """), {
-                "email": dados.get("email"),
-                "senha": dados.get("senha")
-            }).mappings().fetchone()
-
-            if not usuario:
-                return {"erro": "Usuário inválido"}
-
-            user_id = usuario["id"]
-            tipo = usuario["tipo"] if usuario["tipo"] else "membro"
-            igreja_id = usuario["fk_igreja"]
-            membro_id = usuario["fk_membro"]
-
-            token = criar_token({
-                "user_id": user_id,
-                "tipo": tipo,
-                "igreja_id": igreja_id,
-                "membro_id": membro_id
-            })
-
-            return {
-                "token": token,
-                "tipo": tipo,
-                "membro_id": membro_id,
-                "igreja_id": igreja_id
-            }
-
-    except Exception as e:
-        print("🔥 ERRO LOGIN:", str(e))
-        return {"erro": str(e)}
-    
-
-    
-
+    membro_id: int | None = None
 
 # ==========================================
 # USUÁRIO LOGADO
@@ -281,7 +218,6 @@ def login(dados: dict):
 
 @app.get("/me")
 def me(user=Depends(verificar_token)):
-
     with engine.connect() as conn:
         usuario = conn.execute(text("""
             SELECT id, nome, email, tipo, fk_igreja
@@ -289,12 +225,7 @@ def me(user=Depends(verificar_token)):
             WHERE id = :id
         """), {"id": user["user_id"]}).fetchone()
 
-    if not usuario:
-        raise HTTPException(status_code=404)
-
     return dict(usuario._mapping)
-
-
 
 # ==========================================
 # USUÁRIOS
@@ -303,7 +234,7 @@ def me(user=Depends(verificar_token)):
 @app.post("/usuarios")
 def criar_usuario(dados: NovoUsuario, user=Depends(verificar_token)):
 
-    senha_hash = pwd_context.hash(dados.senha)
+    senha_hash = hash_senha(dados.senha)
 
     with engine.connect() as conn:
 
@@ -315,21 +246,21 @@ def criar_usuario(dados: NovoUsuario, user=Depends(verificar_token)):
             raise HTTPException(status_code=400, detail="Email já cadastrado")
 
         conn.execute(text("""
-            INSERT INTO usuarios (nome, email, senha, tipo, fk_membro, fk_igreja)
-            VALUES (:nome, :email, :senha, :tipo, :membro, :igreja)
+            INSERT INTO usuarios (nome, email, senha, tipo, fk_igreja)
+            VALUES (:nome, :email, :senha, :tipo, :igreja)
         """), {
             "nome": dados.nome,
             "email": dados.email,
             "senha": senha_hash,
             "tipo": dados.tipo,
-            "membro": dados.membro_id,
-            "igreja": user["igreja_id"]  # 🔥 automático
+            "igreja": user["igreja_id"]
         })
 
         conn.commit()
 
     return {"status": "usuario criado"}
 
+    
 
 # ==========================================
 # MEMBROS
