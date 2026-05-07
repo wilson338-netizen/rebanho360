@@ -260,6 +260,16 @@ class NovaCongregacao(BaseModel):
 
 
 # ==========================================
+# MODEL SEGMENTO
+# ==========================================
+from pydantic import BaseModel
+
+class Segmento(BaseModel):
+    nome: str
+
+
+
+# ==========================================
 # USUÁRIO LOGADO
 # ==========================================
 
