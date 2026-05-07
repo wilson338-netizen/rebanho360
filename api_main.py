@@ -210,7 +210,6 @@ def verificar_token(request: Request):
         raise HTTPException(status_code=401, detail="Token inválido")
     
 
-
 # ==========================================
 # LOGIN
 # ==========================================
@@ -224,30 +223,35 @@ def login(dados: dict):
             FROM usuarios
             WHERE email = :email AND senha = :senha
         """), {
-            "email": dados["email"],
-            "senha": dados["senha"]
+            "email": dados.get("email"),
+            "senha": dados.get("senha")
         }).fetchone()
 
+        # ❌ usuário não encontrado
         if not usuario:
             return {"erro": "Usuário inválido"}
 
-        # 🔥 GARANTE TIPO
-        tipo = usuario.tipo if usuario.tipo else "membro"
+        # 🔥 CORREÇÃO AQUI (ACESSO POR ÍNDICE)
+        user_id = usuario[0]
+        tipo = usuario[1] if usuario[1] else "membro"
+        igreja_id = usuario[2]
+        membro_id = usuario[3]
 
         token = criar_token({
-            "user_id": usuario.id,
+            "user_id": user_id,
             "tipo": tipo,
-            "igreja_id": usuario.fk_igreja,
-            "membro_id": usuario.fk_membro
+            "igreja_id": igreja_id,
+            "membro_id": membro_id
         })
 
         return {
             "token": token,
             "tipo": tipo,
-            "membro_id": usuario.fk_membro,
-            "igreja_id": usuario.fk_igreja
+            "membro_id": membro_id,
+            "igreja_id": igreja_id
         }
-
+    
+    
 # ==========================================
 # USUÁRIO LOGADO
 # ==========================================
