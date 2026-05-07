@@ -205,12 +205,59 @@ def login(dados: dict):
 # MODELOS
 # ==========================================
 
+class UsuarioLogin(BaseModel):
+    email: str
+    senha: str
+
+class Financeiro(BaseModel):
+    membro_id: int | None = None
+    tipo: str
+    categoria: str
+    valor: float
+    origem: str
+    descricao: str
+    data: str
+
+class Agendamento(BaseModel):
+    nome: str
+    pedido: str
+    data: str
+
 class NovoUsuario(BaseModel):
     nome: str
     email: str
     senha: str
     tipo: str
-    membro_id: int | None = None
+    membro_id: int
+
+class Aviso(BaseModel):
+    titulo: str
+    descricao: str
+
+class PedidoOracao(BaseModel):
+    membro_id: int
+    pedido: str
+
+class Mensagem(BaseModel):
+    de_membro: int
+    para_membro: int
+    mensagem: str
+
+class Voluntario(BaseModel):
+    membro_id: int
+    evento_id: int
+
+class Igreja(BaseModel):
+    nome: str
+    endereco: str
+    cidade: str
+
+class NovaCongregacao(BaseModel):
+    nome: str
+    endereco: str
+    tipo: str
+    fk_igreja: int
+
 
 # ==========================================
 # USUÁRIO LOGADO
@@ -260,7 +307,7 @@ def criar_usuario(dados: NovoUsuario, user=Depends(verificar_token)):
 
     return {"status": "usuario criado"}
 
-    
+
 
 # ==========================================
 # MEMBROS
