@@ -3181,15 +3181,15 @@ def listar_conversas(user=Depends(verificar_token)):
     
 
 
-
-
+# ==========================================
+# SETUP PRÓ
+# ==========================================
 
 @app.get("/setup_pro")
 def setup_pro():
     try:
         with engine.connect() as conn:
 
-            # USUÁRIOS
             conn.execute(text("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
@@ -3202,43 +3202,11 @@ def setup_pro():
             )
             """))
 
-            # MEMBROS
-            conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS membros (
-                id SERIAL PRIMARY KEY,
-                nome TEXT,
-                telefone TEXT,
-                email TEXT,
-                data_nascimento DATE,
-                fk_igreja INT
-            )
-            """))
-
-            # IGREJAS
-            conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS igrejas (
-                id SERIAL PRIMARY KEY,
-                nome TEXT,
-                cidade TEXT,
-                estado TEXT
-            )
-            """))
-
-            # FINANCEIRO
-            conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS financeiro (
-                id SERIAL PRIMARY KEY,
-                tipo TEXT,
-                categoria TEXT,
-                valor FLOAT,
-                data DATE,
-                fk_igreja INT
-            )
-            """))
-
             conn.commit()
 
         return {"status": "Banco criado com sucesso 🚀"}
 
     except Exception as e:
         return {"erro": str(e)}
+
+
