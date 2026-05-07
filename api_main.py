@@ -3191,3 +3191,32 @@ def listar_conversas(user=Depends(verificar_token)):
 
         return [dict(d._mapping) for d in dados]
     
+
+
+
+
+
+@app.get("/setup")
+def setup_banco():
+    with engine.connect() as conn:
+
+        conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            email TEXT,
+            senha TEXT,
+            tipo TEXT,
+            fk_igreja INTEGER,
+            fk_membro INTEGER
+        );
+        """))
+
+        conn.execute(text("""
+        INSERT INTO usuarios (email, senha, tipo)
+        VALUES ('admin@rebanho360.com', '123456', 'admin')
+        ON CONFLICT DO NOTHING;
+        """))
+
+        conn.commit()
+
+    return {"status": "Banco configurado"}
