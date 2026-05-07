@@ -216,40 +216,45 @@ def verificar_token(request: Request):
 @app.post("/login")
 def login(dados: dict):
 
-    with engine.connect() as conn:
+    try:
+        with engine.connect() as conn:
 
-        usuario = conn.execute(text("""
-            SELECT id, tipo, fk_igreja, fk_membro
-            FROM usuarios
-            WHERE email = :email AND senha = :senha
-        """), {
-            "email": dados.get("email"),
-            "senha": dados.get("senha")
-        }).mappings().fetchone()
+            usuario = conn.execute(text("""
+                SELECT id, tipo, fk_igreja, fk_membro
+                FROM usuarios
+                WHERE email = :email AND senha = :senha
+            """), {
+                "email": dados.get("email"),
+                "senha": dados.get("senha")
+            }).mappings().fetchone()
 
-        if not usuario:
-            return {"erro": "Usuário inválido"}
+            if not usuario:
+                return {"erro": "Usuário inválido"}
 
-        user_id = usuario["id"]
-        tipo = usuario["tipo"] if usuario["tipo"] else "membro"
-        igreja_id = usuario["fk_igreja"]
-        membro_id = usuario["fk_membro"]
+            user_id = usuario["id"]
+            tipo = usuario["tipo"] if usuario["tipo"] else "membro"
+            igreja_id = usuario["fk_igreja"]
+            membro_id = usuario["fk_membro"]
 
-        token = criar_token({
-            "user_id": user_id,
-            "tipo": tipo,
-            "igreja_id": igreja_id,
-            "membro_id": membro_id
-        })
+            token = criar_token({
+                "user_id": user_id,
+                "tipo": tipo,
+                "igreja_id": igreja_id,
+                "membro_id": membro_id
+            })
 
-        return {
-            "token": token,
-            "tipo": tipo,
-            "membro_id": membro_id,
-            "igreja_id": igreja_id
-        }
+            return {
+                "token": token,
+                "tipo": tipo,
+                "membro_id": membro_id,
+                "igreja_id": igreja_id
+            }
 
-        
+    except Exception as e:
+        print("🔥 ERRO LOGIN:", str(e))
+        return {"erro": str(e)}
+    
+    
     
 
 
