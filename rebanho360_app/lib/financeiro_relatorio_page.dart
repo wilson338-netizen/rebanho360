@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
+
 class FinanceiroRelatorioPage extends StatefulWidget {
   @override
   _FinanceiroRelatorioPageState createState() =>
@@ -22,7 +27,7 @@ class _FinanceiroRelatorioPageState
   Future carregar() async {
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/financeiro/membros")
+      Uri.parse("${ApiService.baseUrl}/financeiro/membros")
     );
 
     if (response.statusCode == 200) {

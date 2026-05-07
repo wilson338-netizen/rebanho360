@@ -7,6 +7,10 @@ import 'home_page.dart';
 import 'app_membro.dart';
 import 'cadastro_igreja_page.dart';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -17,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   TextEditingController email = TextEditingController();
   TextEditingController senha = TextEditingController();
 
-  final String baseUrl = "http://localhost:8000";
+  final String baseUrl = "${ApiService.baseUrl}";
 
   void login() async {
 

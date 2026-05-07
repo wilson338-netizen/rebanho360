@@ -55,7 +55,7 @@ Future carregar() async {
 
     await http.put(
       Uri.parse(
-        "http://localhost:8000/membros/${widget.membroId}"
+        "${ApiService.baseUrl}/membros/${widget.membroId}"
         "?telefone=${telefone.text}&endereco=${endereco.text}&documento=${documento.text}"
       ),
     );
@@ -86,7 +86,7 @@ Future carregar() async {
 
         var request = http.MultipartRequest(
           "POST",
-          Uri.parse("http://localhost:8000/membros/${widget.membroId}/foto"),
+          Uri.parse("${ApiService.baseUrl}/membros/${widget.membroId}/foto"),
         );
 
         request.files.add(
@@ -192,7 +192,7 @@ Future carregar() async {
                     radius: 50,
                     backgroundColor: Colors.white24,
                     backgroundImage: foto.isNotEmpty
-                        ? NetworkImage("http://localhost:8000/$foto")
+                        ? NetworkImage("${ApiService.baseUrl}/$foto")
                         : null,
                     child: foto.isEmpty
                         ? Icon(Icons.person, size: 40, color: Colors.white)

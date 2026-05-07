@@ -22,7 +22,7 @@ class _EscalaEventoPageState extends State<EscalaEventoPage> {
   Future carregar() async {
 
     final res = await http.get(
-      Uri.parse("http://localhost:8000/escala/${widget.eventoId}")
+      Uri.parse("${ApiService.baseUrl}/escala/${widget.eventoId}")
     );
 
     setState(() {
@@ -36,7 +36,7 @@ class _EscalaEventoPageState extends State<EscalaEventoPage> {
   Future gerarEscala() async {
 
     final res = await http.post(
-      Uri.parse("http://localhost:8000/escala/gerar_por_evento"),
+      Uri.parse("${ApiService.baseUrl}/escala/gerar_por_evento"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "evento_id": widget.eventoId

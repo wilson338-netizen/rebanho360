@@ -6,46 +6,64 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import os
 import shutil
-from sqlalchemy.orm import Session
-from datetime import date
-
 
 print("🔥 DASHBOARD DETALHADO CARREGADO")
 
-
-
 # ==========================================
-# CONFIG
+# APP
 # ==========================================
 
 app = FastAPI(title="Rebanho360 API FINAL")
 
-BASE_URL = "https://SEU_DOMINIO_AQUI"
-
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# ==========================================
+# CORS (OBRIGATÓRIO PARA FLUTTER WEB)
+# ==========================================
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # depois podemos restringir
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ==========================================
+# UPLOADS
+# ==========================================
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# ==========================================
+# SEGURANÇA
+# ==========================================
 
 SECRET_KEY = "rebanho360_super_secret_key_32chars"
 ALGORITHM = "HS256"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-import os
+# ==========================================
+# DATABASE
+# ==========================================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# ==========================================
+# BASE URL (PRODUÇÃO)
+# ==========================================
+
+BASE_URL = os.getenv(
+    "BASE_URL",
+    "https://web-production-88cd7.up.railway.app"
+)
+
 
 
 # ==========================================

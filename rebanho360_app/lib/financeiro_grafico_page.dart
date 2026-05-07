@@ -3,6 +3,12 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
+
+
 class FinanceiroGraficoPage extends StatefulWidget {
   @override
   _FinanceiroGraficoPageState createState() =>
@@ -22,7 +28,7 @@ class _FinanceiroGraficoPageState
 
   Future carregar() async {
     final response = await http.get(
-      Uri.parse("http://localhost:8000/financeiro/mensal"),
+      Uri.parse("${ApiService.baseUrl}/financeiro/mensal"),
     );
 
     if (response.statusCode == 200) {

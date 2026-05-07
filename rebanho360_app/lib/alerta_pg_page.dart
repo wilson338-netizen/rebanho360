@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
+
+
 class AlertaPGPage extends StatefulWidget {
 
   final int pgId;
@@ -25,7 +32,7 @@ class _AlertaPGPageState extends State<AlertaPGPage> {
   Future carregarAlertas() async {
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/alerta_ausentes/${widget.pgId}")
+      Uri.parse("${ApiService.baseUrl}/alerta_ausentes/${widget.pgId}")
     );
 
     if (response.statusCode == 200) {

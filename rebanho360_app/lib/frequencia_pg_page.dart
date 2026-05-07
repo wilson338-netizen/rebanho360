@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
+
 class FrequenciaPGPage extends StatefulWidget {
 
   final int pgId;
@@ -25,7 +30,7 @@ class _FrequenciaPGPageState extends State<FrequenciaPGPage> {
   Future carregarFrequencia() async {
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/frequencia_pg/${widget.pgId}")
+      Uri.parse("${ApiService.baseUrl}/frequencia_pg/${widget.pgId}")
     );
 
     if (response.statusCode == 200) {

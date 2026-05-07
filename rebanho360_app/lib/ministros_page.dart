@@ -42,7 +42,7 @@ class _MinistrosPageState extends State<MinistrosPage> {
   Future carregarMinistros() async {
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/ministros")
+      Uri.parse("${ApiService.baseUrl}/ministros")
     );
 
     if (response.statusCode == 200) {
@@ -58,7 +58,7 @@ class _MinistrosPageState extends State<MinistrosPage> {
 
   Future salvarMinistro(int membroId, String cargo) async {
 
-  final url = Uri.parse("http://localhost:8000/ministros");
+  final url = Uri.parse("${ApiService.baseUrl}/ministros");
 
   await http.post(
     url,
@@ -85,7 +85,7 @@ class _MinistrosPageState extends State<MinistrosPage> {
 
   // 🔥 buscar membros
   final response = await http.get(
-    Uri.parse("http://localhost:8000/membros")
+    Uri.parse("${ApiService.baseUrl}/membros")
   );
 
   if (response.statusCode == 200) {

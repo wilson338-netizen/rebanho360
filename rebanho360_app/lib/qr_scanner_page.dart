@@ -15,7 +15,7 @@ class QRScannerPage extends StatelessWidget {
     final id = codigo.split(":")[1];
 
     await http.post(
-      Uri.parse("http://localhost:8000/presenca_qr"),
+      Uri.parse("${ApiService.baseUrl}/presenca_qr"),
       headers: {"Content-Type": "application/json"},
       body: '{"membro_id": $id, "pg_id": $pgId}',
     );

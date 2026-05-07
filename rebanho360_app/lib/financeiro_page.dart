@@ -11,6 +11,10 @@ import 'financeiro_fluxo_page.dart';
 import 'financeiro_grafico_page.dart';
 import 'financeiro_dashboard_page.dart';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
 
 // ==========================================
 // 2 WIDGET PRINCIPAL
@@ -54,11 +58,11 @@ class _FinanceiroPageState extends State<FinanceiroPage> {
   Future carregarDados() async {
 
     final res1 = await http.get(
-      Uri.parse("http://localhost:8000/financeiro")
+      Uri.parse("${ApiService.baseUrl}/financeiro")
     );
 
     final res2 = await http.get(
-      Uri.parse("http://localhost:8000/financeiro/resumo")
+      Uri.parse("${ApiService.baseUrl}/financeiro/resumo")
     );
 
     if (res1.statusCode == 200 && res2.statusCode == 200) {
@@ -77,7 +81,7 @@ class _FinanceiroPageState extends State<FinanceiroPage> {
   Future carregarMembros() async {
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/membros")
+      Uri.parse("${ApiService.baseUrl}/membros")
     );
 
     if (response.statusCode == 200) {
@@ -220,7 +224,7 @@ class _FinanceiroPageState extends State<FinanceiroPage> {
                     try {
 
                       final response = await http.post(
-  Uri.parse("http://localhost:8000/financeiro"),
+  Uri.parse("${ApiService.baseUrl}/financeiro"),
   headers: {"Content-Type": "application/json"},
   body: jsonEncode({
     "membro_id": membroSelecionado,

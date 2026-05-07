@@ -24,7 +24,7 @@ class _LouvorPageState extends State<LouvorPage> {
   Future carregar() async {
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/louvor/${widget.eventoId}")
+      Uri.parse("${ApiService.baseUrl}/louvor/${widget.eventoId}")
     );
 
     if (response.statusCode == 200) {

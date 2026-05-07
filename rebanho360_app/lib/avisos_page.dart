@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
 class AvisosPage extends StatefulWidget {
   @override
   _AvisosPageState createState() => _AvisosPageState();
@@ -19,7 +23,7 @@ class _AvisosPageState extends State<AvisosPage> {
 
   Future carregar() async {
     final res = await http.get(
-      Uri.parse("http://localhost:8000/avisos"),
+      Uri.parse("${ApiService.baseUrl}/avisos"),
     );
 
     if (res.statusCode == 200) {

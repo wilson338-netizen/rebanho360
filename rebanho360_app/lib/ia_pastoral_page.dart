@@ -20,7 +20,7 @@ class _IAPastoralPageState extends State<IAPastoralPage> {
   Future carregar() async {
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/ia_pastoral")
+      Uri.parse("${ApiService.baseUrl}/ia_pastoral")
     );
 
     if (response.statusCode == 200) {

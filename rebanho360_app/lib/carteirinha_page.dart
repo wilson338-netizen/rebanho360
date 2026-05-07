@@ -324,7 +324,7 @@ Future gerarPDF() async {
                   CircleAvatar(
                     radius: 25,
                     backgroundImage: dados["foto"] != null && dados["foto"] != ""
-                        ? NetworkImage("http://localhost:8000/${dados["foto"]}")
+                        ? NetworkImage("${ApiService.baseUrl}/${dados["foto"]}")
                         : null,
                     child: (dados["foto"] == null || dados["foto"] == "")
                         ? Icon(Icons.person)

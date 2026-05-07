@@ -13,6 +13,10 @@ import 'frequencia_pg_page.dart';
 import 'alerta_pg_page.dart';
 
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
 // ==========================================
 // PAGE
 // ==========================================
@@ -54,7 +58,7 @@ class _PGDetalhePageState extends State<PGDetalhePage> {
   Future carregarMembrosDoPG() async {
 
     final url = Uri.parse(
-      "http://localhost:8000/membros_pg/${widget.pg.id}"
+      "${ApiService.baseUrl}/membros_pg/${widget.pg.id}"
     );
 
     final response = await http.get(url);
@@ -79,7 +83,7 @@ class _PGDetalhePageState extends State<PGDetalhePage> {
 
   Future salvarPresencaAPI() async {
 
-    final url = Uri.parse("http://localhost:8000/presencas");
+    final url = Uri.parse("${ApiService.baseUrl}/presencas");
 
     final presentesIds = presencas
         .where((p) => p.presente)
@@ -114,7 +118,7 @@ class _PGDetalhePageState extends State<PGDetalhePage> {
 
   Future vincularMembro(int membroId) async {
 
-    final url = Uri.parse("http://localhost:8000/vincular_membro_pg");
+    final url = Uri.parse("${ApiService.baseUrl}/vincular_membro_pg");
 
     await http.post(
       url,

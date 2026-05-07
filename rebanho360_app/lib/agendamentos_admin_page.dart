@@ -13,7 +13,7 @@ class _AgendamentosAdminPageState extends State<AgendamentosAdminPage> {
 
   Future carregar() async {
     final res = await http.get(
-      Uri.parse("http://localhost:8000/agendamentos"),
+      Uri.parse("${ApiService.baseUrl}/agendamentos"),
     );
 
     setState(() {
@@ -23,7 +23,7 @@ class _AgendamentosAdminPageState extends State<AgendamentosAdminPage> {
 
   Future atualizar(int id) async {
     await http.put(
-      Uri.parse("http://localhost:8000/agendamentos/$id?status=atendido"),
+      Uri.parse("${ApiService.baseUrl}/agendamentos/$id?status=atendido"),
     );
 
     carregar();

@@ -9,6 +9,9 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'data/familias_data.dart';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
 
 // ============================================
 // TELA CADASTRO MEMBRO
@@ -69,7 +72,7 @@ class _CadastroMembroPageState extends State<CadastroMembroPage> {
 
     final response = await http.post(
 
-      Uri.parse("http://localhost:8000/membros"),
+      Uri.parse("${ApiService.baseUrl}/membros"),
 
       headers: {
         "Content-Type": "application/json"

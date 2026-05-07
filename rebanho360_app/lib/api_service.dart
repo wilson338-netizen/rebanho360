@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
 
-  static const String baseUrl = "http://localhost:8000";
+  // 🔥 AGORA APONTANDO PARA PRODUÇÃO
+  static const String baseUrl = "https://web-production-88cd7.up.railway.app";
 
   // ==========================
   // HEADERS PADRÃO
@@ -18,7 +19,7 @@ class ApiService {
 
     return {
       "Content-Type": "application/json",
-      "Authorization": "Bearer $token",
+      "Authorization": token != null ? "Bearer $token" : "",
     };
   }
 
@@ -35,39 +36,38 @@ class ApiService {
   }
 
   // ==========================
-// POST (ACEITA STRING OU MAP)
-// ==========================
-static Future<http.Response> post(
-  String endpoint,
-  dynamic body,
-) async {
+  // POST
+  // ==========================
+  static Future<http.Response> post(
+    String endpoint,
+    dynamic body,
+  ) async {
 
-  final headers = await getHeaders();
+    final headers = await getHeaders();
 
-  return await http.post(
-    Uri.parse("$baseUrl$endpoint"),
-    headers: headers,
-    body: body is String ? body : jsonEncode(body),
-  );
-}
+    return await http.post(
+      Uri.parse("$baseUrl$endpoint"),
+      headers: headers,
+      body: body is String ? body : jsonEncode(body),
+    );
+  }
 
-// ==========================
-// PUT (ACEITA STRING OU MAP)
-// ==========================
-static Future<http.Response> put(
-  String endpoint,
-  dynamic body,
-) async {
+  // ==========================
+  // PUT
+  // ==========================
+  static Future<http.Response> put(
+    String endpoint,
+    dynamic body,
+  ) async {
 
-  final headers = await getHeaders();
+    final headers = await getHeaders();
 
-  return await http.put(
-    Uri.parse("$baseUrl$endpoint"),
-    headers: headers,
-    body: body is String ? body : jsonEncode(body),
-  );
-}
-
+    return await http.put(
+      Uri.parse("$baseUrl$endpoint"),
+      headers: headers,
+      body: body is String ? body : jsonEncode(body),
+    );
+  }
 
   // ==========================
   // DELETE
@@ -81,4 +81,3 @@ static Future<http.Response> put(
     );
   }
 }
-

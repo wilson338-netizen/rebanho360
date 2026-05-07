@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
+
 class SelecionarMembrosPGPage extends StatefulWidget {
   @override
   _SelecionarMembrosPGPageState createState() => _SelecionarMembrosPGPageState();
@@ -15,7 +20,7 @@ class _SelecionarMembrosPGPageState extends State<SelecionarMembrosPGPage> {
   Future carregarMembros() async {
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/membros")
+      Uri.parse("${ApiService.baseUrl}/membros")
     );
 
     if (response.statusCode == 200) {

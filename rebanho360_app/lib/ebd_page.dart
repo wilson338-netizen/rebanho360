@@ -6,6 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'segmentos_page.dart';
 import 'package:rebanho360_app/dashboard_ebd_page.dart';
 
+import 'package:rebanho360_app/api_service.dart';
+
+final String baseUrl = "${ApiService.baseUrl}";
+
 
 class EBDPage extends StatefulWidget {
   @override
@@ -42,7 +46,7 @@ class _EBDPageState extends State<EBDPage> with TickerProviderStateMixin {
   }
 
   String get baseUrl {
-    return "http://localhost:8000";
+    return "${ApiService.baseUrl}";
   }
 
   Future<Map<String, String>> getHeaders() async {
