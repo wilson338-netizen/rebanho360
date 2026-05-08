@@ -83,6 +83,31 @@ def somente_admin(user):
     if user["tipo"] not in ["admin", "pastor"]:
         raise HTTPException(status_code=403, detail="Sem permissão")
 
+
+
+# ==========================================
+# TOKEN HELPER (MULTI-IGREJA)
+# ==========================================
+
+from fastapi import Request
+
+def get_user_from_token(request: Request):
+    try:
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise HTTPException(status_code=401, detail="Token não enviado")
+
+        token = auth.replace("Bearer ", "")
+
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        return payload
+
+    except:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    
+
 # ==========================================
 # DATABASE
 # ==========================================
@@ -418,33 +443,20 @@ def criar_membro(dados: dict, user=Depends(verificar_token)):
 # ==========================================
 
 @app.get("/membros")
-def listar_membros(user=Depends(verificar_token)):
+def listar_membros(request: Request):
+
+    user = get_user_from_token(request)
 
     with engine.connect() as conn:
-        result = conn.execute(text("""
-            SELECT m.*, c.nome as congregacao
-            FROM membros m
-            LEFT JOIN congregacoes c ON c.id = m.fk_congregacao
-            WHERE m.fk_igreja = :igreja
-        """), {"igreja": user["igreja_id"]})
+        membros = conn.execute(text("""
+            SELECT *
+            FROM membros
+            WHERE fk_igreja = :igreja_id
+        """), {
+            "igreja_id": user["igreja_id"]
+        }).fetchall()
 
-        dados = []
-
-        for row in result:
-            membro = dict(row._mapping)
-
-            membro["segmento"] = calcular_segmento(
-                membro.get("data_nascimento")
-            )
-
-            # 🔥 proteção contra null (resolve seu erro vermelho)
-            for k, v in membro.items():
-                if v is None:
-                    membro[k] = ""
-
-            dados.append(membro)
-
-        return dados
+        return [dict(row._mapping) for row in membros]
     
 # ==========================================
 # MEMBRO POR ID
@@ -3191,16 +3203,15 @@ def setup_pro():
         with engine.connect() as conn:
 
             conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS usuarios (
-                id SERIAL PRIMARY KEY,
-                nome TEXT,
-                email TEXT UNIQUE,
-                senha TEXT,
-                tipo TEXT,
-                fk_igreja INT,
-                fk_membro INT
-            )
-            """))
+             CREATE TABLE IF NOT EXISTS igrejas (
+              id SERIAL PRIMARY KEY,
+              nome TEXT,
+              cidade TEXT,
+            estado TEXT,
+            logo TEXT,
+             pix TEXT
+             )
+             """))
 
             conn.commit()
 
@@ -3210,3 +3221,36 @@ def setup_pro():
         return {"erro": str(e)}
 
 
+
+
+
+@app.post("/criar_igreja")
+def criar_igreja(dados: dict):
+
+    try:
+        with engine.begin() as conn:
+
+            # cria igreja
+            igreja = conn.execute(text("""
+                INSERT INTO igrejas (nome, cidade, estado)
+                VALUES (:nome, :cidade, :estado)
+                RETURNING id
+            """), dados).fetchone()
+
+            igreja_id = igreja.id
+
+            # cria admin automático
+            conn.execute(text("""
+                INSERT INTO usuarios (nome, email, senha, tipo, fk_igreja)
+                VALUES (:nome_admin, :email, :senha, 'admin', :igreja_id)
+            """), {
+                "nome_admin": dados["nome_admin"],
+                "email": dados["email"],
+                "senha": dados["senha"],
+                "igreja_id": igreja_id
+            })
+
+        return {"status": "Igreja criada com sucesso 🚀"}
+
+    except Exception as e:
+        return {"erro": str(e)}
