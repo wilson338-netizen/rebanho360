@@ -373,13 +373,12 @@ def calcular_segmento(data_nascimento):
     else:
         return "Adulto"
 
-
 # ==========================================
 # CRIAR MEMBRO
 # ==========================================
 
 @app.post("/membros")
-def criar_membro(dados: dict, user=Depends(verificar_token)):
+def criar_membro(dados: dict, user=Depends(get_user_from_token)):
 
     try:
         with engine.connect() as conn:
@@ -425,7 +424,7 @@ def criar_membro(dados: dict, user=Depends(verificar_token)):
                 "estado": dados.get("estado"),
                 "email": dados.get("email"),
                 "cargo": dados.get("cargo"),
-               "fk_congregacao": dados.get("fk_congregacao") or None,
+                "fk_congregacao": dados.get("fk_congregacao") or None,
                 "fk_familia": dados.get("fk_familia"),
                 "data_nascimento": dados.get("data_nascimento"),
                 "igreja": user["igreja_id"]
