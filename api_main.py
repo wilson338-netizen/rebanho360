@@ -13,6 +13,11 @@ from datetime import datetime, timedelta, date
 import os
 import shutil
 
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends
+
+security = HTTPBearer()
+
 print("🔥 REBANHO360 PRO FINAL INICIANDO...")
 
 # ==========================================
@@ -91,14 +96,11 @@ def somente_admin(user):
 
 from fastapi import Request
 
-def get_user_from_token(request: Request):
+def get_user_from_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise HTTPException(status_code=401, detail="Token não enviado")
-
-        token = auth.replace("Bearer ", "")
+        token = credentials.credentials
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
@@ -443,9 +445,7 @@ def criar_membro(dados: dict, user=Depends(verificar_token)):
 # ==========================================
 
 @app.get("/membros")
-def listar_membros(request: Request):
-
-    user = get_user_from_token(request)
+def listar_membros(user = Depends(get_user_from_token)):
 
     with engine.connect() as conn:
         membros = conn.execute(text("""
