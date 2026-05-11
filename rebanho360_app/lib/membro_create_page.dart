@@ -1,10 +1,5 @@
-// ==========================================
-// MEMBRO CREATE (COM TURMA EBD)
-// ==========================================
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'api_service.dart';
 
@@ -25,76 +20,55 @@ class _MembroCreatePageState extends State<MembroCreatePage> {
   final email = TextEditingController();
 
   DateTime? dataNascimento;
-
   String cargo = "Membro";
+
+  bool loading = false;
 
   final telefoneMask = MaskTextInputFormatter(mask: '(##) #####-####');
   final cepMask = MaskTextInputFormatter(mask: '#####-###');
 
-  List<String> cargos = [
-    "Membro","Pastor","Presbítero","Missionário(a)",
-    "Evangelista","Diácono","Diaconisa","Professor(a) EBD","Líder"
-  ];
-
-  List congregacoes = [];
-  List familias = [];
-  List turmas = [];
-
-  int? congregacaoSelecionada;
-  int? familiaSelecionada;
-  int? turmaSelecionada;
-
-  Future carregarRelacoes() async {
-    final c = await ApiService.get("/congregacoes");
-    final f = await ApiService.get("/familias");
-    final t = await ApiService.get("/ebd/turmas");
-
-    if (c.statusCode == 200 && f.statusCode == 200 && t.statusCode == 200) {
-      setState(() {
-        congregacoes = jsonDecode(c.body);
-        familias = jsonDecode(f.body);
-        turmas = jsonDecode(t.body);
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    carregarRelacoes();
+  String formatarData(DateTime data) {
+    return "${data.year}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}";
   }
 
   Future salvar() async {
+    setState(() => loading = true);
 
-    if (familiaSelecionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Selecione uma família")),
+    try {
+      final res = await ApiService.post(
+        "/membros",
+        {
+          "nome": nome.text,
+          "telefone": telefone.text,
+          "endereco": endereco.text,
+          "bairro": bairro.text,
+          "cep": cep.text,
+          "municipio": municipio.text,
+          "estado": estado.text,
+          "email": email.text,
+          "cargo": cargo,
+          "fk_congregacao": null,
+          "fk_familia": null,
+          "data_nascimento": dataNascimento != null
+              ? formatarData(dataNascimento!)
+              : null,
+        },
       );
-      return;
+
+      if (res.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Membro cadastrado")),
+        );
+        Navigator.pop(context);
+      } else {
+        print(res.body);
+      }
+
+    } catch (e) {
+      print(e);
     }
 
-    final res = await ApiService.post(
-      "/membros",
-      jsonEncode({
-        "nome": nome.text,
-        "telefone": telefone.text,
-        "endereco": endereco.text,
-        "bairro": bairro.text,
-        "cep": cep.text,
-        "municipio": municipio.text,
-        "estado": estado.text,
-        "email": email.text,
-        "cargo": cargo,
-        "fk_congregacao": congregacaoSelecionada,
-        "fk_familia": familiaSelecionada,
-        "fk_turma": turmaSelecionada, // 🔥 AQUI
-        "data_nascimento": dataNascimento?.toIso8601String(),
-      }),
-    );
-
-    if (res.statusCode == 200 || res.statusCode == 201) {
-      Navigator.pop(context, true);
-    }
+    setState(() => loading = false);
   }
 
   Widget campo(String label, TextEditingController controller,
@@ -104,7 +78,10 @@ class _MembroCreatePageState extends State<MembroCreatePage> {
       child: TextField(
         controller: controller,
         inputFormatters: mask != null ? [mask] : [],
-        decoration: InputDecoration(labelText: label, border: OutlineInputBorder()),
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
       ),
     );
   }
@@ -139,7 +116,9 @@ class _MembroCreatePageState extends State<MembroCreatePage> {
                   firstDate: DateTime(1950),
                   lastDate: DateTime.now(),
                 );
-                if (data != null) setState(() => dataNascimento = data);
+                if (data != null) {
+                  setState(() => dataNascimento = data);
+                }
               },
               child: InputDecorator(
                 decoration: InputDecoration(
@@ -149,66 +128,23 @@ class _MembroCreatePageState extends State<MembroCreatePage> {
                 child: Text(
                   dataNascimento == null
                       ? "Selecione a data"
-                      : "${dataNascimento!.day}/${dataNascimento!.month}/${dataNascimento!.year}",
+                      : formatarData(dataNascimento!),
                 ),
               ),
             ),
 
-            SizedBox(height: 10),
-
-            DropdownButtonFormField<int>(
-              hint: Text("Turma EBD"),
-              value: turmaSelecionada,
-              items: turmas.map<DropdownMenuItem<int>>((t) {
-                return DropdownMenuItem(
-                  value: t["id"],
-                  child: Text(t["nome"]),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() => turmaSelecionada = v),
-            ),
-
-            SizedBox(height: 10),
-
-            DropdownButtonFormField<int>(
-              hint: Text("Sem congregação"),
-              value: congregacaoSelecionada,
-              items: congregacoes.map<DropdownMenuItem<int>>((c) {
-                return DropdownMenuItem(
-                  value: c["id"],
-                  child: Text(c["nome"]),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() => congregacaoSelecionada = v),
-            ),
-
-            SizedBox(height: 10),
-
-            DropdownButtonFormField<int>(
-              hint: Text("Família"),
-              value: familiaSelecionada,
-              items: familias.map<DropdownMenuItem<int>>((f) {
-                return DropdownMenuItem(
-                  value: f["id"],
-                  child: Text(f["nome"]),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() => familiaSelecionada = v),
-            ),
-
-            SizedBox(height: 10),
-
-            DropdownButtonFormField(
-              value: cargo,
-              items: cargos.map((c) {
-                return DropdownMenuItem(value: c, child: Text(c));
-              }).toList(),
-              onChanged: (v) => setState(() => cargo = v.toString()),
-            ),
-
             SizedBox(height: 20),
 
-            ElevatedButton(onPressed: salvar, child: Text("Salvar")),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: loading ? null : salvar,
+                child: loading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text("Salvar"),
+              ),
+            ),
           ],
         ),
       ),

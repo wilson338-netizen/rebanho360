@@ -4,22 +4,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
 
-  // 🔥 AGORA APONTANDO PARA PRODUÇÃO
+  // 🔥 PRODUÇÃO
   static const String baseUrl = "https://web-production-88cd7.up.railway.app";
+
+  // ==========================
+  // TOKEN
+  // ==========================
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("token");
+  }
 
   // ==========================
   // HEADERS PADRÃO
   // ==========================
   static Future<Map<String, String>> getHeaders() async {
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString("token");
-
-    print("TOKEN GLOBAL: $token"); // DEBUG
+    final token = await getToken();
 
     return {
       "Content-Type": "application/json",
-      "Authorization": token != null ? "Bearer $token" : "",
+      if (token != null && token.isNotEmpty)
+        "Authorization": "Bearer $token",
     };
   }
 
@@ -81,3 +86,4 @@ class ApiService {
     );
   }
 }
+

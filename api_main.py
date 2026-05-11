@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, date
 import os
 import shutil
 
+
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends
 
@@ -30,14 +31,16 @@ app = FastAPI(title="Rebanho360 API FINAL")
 # CORS
 # ==========================================
 
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # depois restringe
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
-
 # ==========================================
 # UPLOADS
 # ==========================================
@@ -478,7 +481,7 @@ def get_membro(id: int, user=Depends(verificar_token)):
 
         return dict(result._mapping)
     
-    
+
 
 # ==========================================
 # ATUALIZAR MEMBRO
