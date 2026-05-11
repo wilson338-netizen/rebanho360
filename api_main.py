@@ -559,496 +559,64 @@ def deletar_membro(id: int, user=Depends(get_user_from_token)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-
 
 
 
 # ==========================================
-# EBD DO MEMBRO (CORRIGIDO PROFISSIONAL)
+# FAMILIAS
 # ==========================================
 
-from datetime import date
+@app.post("/familias")
+def criar_familia(dados: dict, user=Depends(get_user_from_token)):
 
-@app.get("/membro/ebd")
-def ebd_do_membro(user=Depends(verificar_token)):
-
-    membro_id = user.get("membro_id")
-
-    if not membro_id:
-        raise HTTPException(status_code=400, detail="Membro não identificado")
-
-    with engine.connect() as conn:
-
-        # ==========================
-        # BUSCAR MEMBRO (AGORA COM TURMA)
-        # ==========================
-        membro = conn.execute(text("""
-            SELECT nome, fk_turma
-            FROM membros
-            WHERE id = :id
-        """), {"id": membro_id}).fetchone()
-
-        if not membro:
-            raise HTTPException(status_code=404, detail="Membro não encontrado")
-
-        # ==========================
-        # DEFINIR TURMA (AUTO + FALLBACK)
-        # ==========================
-        turma_db = None
-
-        # 🔹 1. tenta pela fk_turma (manual)
-        if membro.fk_turma:
-            turma_db = conn.execute(text("""
-                SELECT t.id, t.nome, m.nome as professor
-                FROM ebd_turmas t
-                LEFT JOIN membros m ON m.id = t.professor_id
-                WHERE t.id = :turma
-                AND t.fk_igreja = :igreja
-            """), {
-                "turma": membro.fk_turma,
-                "igreja": user["igreja_id"]
-            }).fetchone()
-
-        # 🔹 2. fallback automático por idade
-        if not turma_db:
-
-            idade = 0
-
-            membro_data = conn.execute(text("""
-                SELECT data_nascimento
-                FROM membros
-                WHERE id = :id
-            """), {"id": membro_id}).fetchone()
-
-            if membro_data and membro_data.data_nascimento:
-                idade = date.today().year - membro_data.data_nascimento.year
-
-            if idade <= 6:
-                nome_turma = "Berçário"
-            elif idade <= 11:
-                nome_turma = "Infantil"
-            elif idade <= 18:
-                nome_turma = "Adolescente"
-            elif idade <= 35:
-                nome_turma = "Jovens"
-            else:
-                nome_turma = "Adulto"
-
-            turma_db = conn.execute(text("""
-                SELECT t.id, t.nome, m.nome as professor
-                FROM ebd_turmas t
-                LEFT JOIN membros m ON m.id = t.professor_id
-                WHERE LOWER(t.nome) = LOWER(:nome)
-                AND t.fk_igreja = :igreja
-            """), {
-                "nome": nome_turma,
-                "igreja": user["igreja_id"]
-            }).fetchone()
-
-        # ==========================
-        # BUSCAR LIÇÃO DA TURMA
-        # ==========================
-        licao = None
-
-        if turma_db:
-            licao = conn.execute(text("""
-                SELECT titulo, descricao
-                FROM ebd_licoes
-                WHERE fk_turma = :turma
-                ORDER BY data DESC
-                LIMIT 1
-            """), {
-                "turma": turma_db.id
-            }).fetchone()
-
-        # ==========================
-        # RETORNO FINAL
-        # ==========================
-        return {
-            "nome": membro.nome,
-            "turma": turma_db.nome if turma_db else "Sem turma",
-            "professor": turma_db.professor if turma_db else "Não definido",
-            "licao": licao.titulo if licao else "Sem lição",
-            "descricao": licao.descricao if licao else "",
-            "frequencia": 75
-        }
-
-
-@app.put("/ebd/turmas/{id}")
-def atualizar_turma(id: int, dados: dict, user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-        conn.execute(text("""
-            UPDATE ebd_turmas
-            SET professor_id = :professor
-            WHERE id = :id
-            AND fk_igreja = :igreja
-        """), {
-            "professor": dados.get("professor_id"),
-            "id": id,
-            "igreja": user["igreja_id"]
-        })
-
-        conn.commit()
-
-    return {"status": "ok"}
-
-@app.post("/ebd/licao")
-def salvar_licao(dados: dict, user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-        conn.execute(text("""
-            INSERT INTO ebd_licoes (
-                titulo,
-                descricao,
-                fk_turma,
-                fk_igreja,
-                data
-            )
-            VALUES (
-                :titulo,
-                :descricao,
-                :turma,
-                :igreja,
-                NOW()
-            )
-        """), {
-            "titulo": dados.get("titulo"),
-            "descricao": dados.get("descricao"),
-            "turma": dados.get("fk_turma"),
-            "igreja": user["igreja_id"]
-        })
-
-        conn.commit()
-
-    return {"status": "ok"}
-
-
-
-@app.post("/ebd/presenca")
-def salvar_presenca(dados: dict, user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-
-        for item in dados.get("presenca", []):
-
-            print("ITEM RECEBIDO:", item)  # 🔥 DEBUG
-
-            membro_id = item.get("membro_id")
-            turma_id = item.get("turma_id")
-            presente = item.get("presente", True)
-
-            if not membro_id or not turma_id:
-                continue  # 🔥 evita quebrar
-
+    try:
+        with engine.connect() as conn:
             conn.execute(text("""
-                INSERT INTO ebd_presenca (
-                    fk_membro,
-                    fk_turma,
-                    presente,
+                INSERT INTO familias (
+                    nome,
+                    telefone,
+                    endereco,
+                    observacoes,
                     fk_igreja
                 )
                 VALUES (
-                    :membro,
-                    :turma,
-                    :presente,
+                    :nome,
+                    :telefone,
+                    :endereco,
+                    :observacoes,
                     :igreja
                 )
             """), {
-                "membro": membro_id,
-                "turma": turma_id,
-                "presente": presente,
+                "nome": dados.get("nome"),
+                "telefone": dados.get("telefone"),
+                "endereco": dados.get("endereco"),
+                "observacoes": dados.get("observacoes"),
                 "igreja": user["igreja_id"]
             })
 
-        conn.commit()
+            conn.commit()
 
-    return {"status": "ok"}
+        return {"status": "ok"}
 
-
-@app.get("/ebd/membros")
-def membros_por_turma(turma: int, user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-        result = conn.execute(text("""
-            SELECT id, nome
-            FROM membros
-            WHERE fk_turma = :turma
-        """), {
-            "turma": turma
-        })
-
-        return [dict(r._mapping) for r in result]
+    except Exception as e:
+        print("ERRO AO SALVAR FAMILIA:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/ebd/ultima")
-def ultima_presenca(turma: int, user=Depends(verificar_token)):
+@app.get("/familias")
+def listar_familias(user=Depends(get_user_from_token)):
 
     with engine.connect() as conn:
         result = conn.execute(text("""
-            SELECT fk_membro, presente
-            FROM ebd_presenca
-            WHERE fk_turma = :turma
-            ORDER BY data DESC
+            SELECT * FROM familias
+            WHERE fk_igreja = :igreja
+            ORDER BY id DESC
         """), {
-            "turma": turma
-        })
-
-        return [dict(r._mapping) for r in result]
-    
-
-@app.get("/ebd/relatorio")
-def relatorio_ebd(turma: int, user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-
-        # ==========================
-        # TOTAL DE AULAS DA TURMA
-        # ==========================
-        total_aulas = conn.execute(text("""
-            SELECT COUNT(DISTINCT data) as total
-            FROM ebd_presenca
-            WHERE fk_turma = :turma
-            AND fk_igreja = :igreja
-        """), {
-            "turma": turma,
-            "igreja": user["igreja_id"]
-        }).fetchone()
-
-        total = total_aulas.total if total_aulas else 0
-
-        # ==========================
-        # PRESENÇA POR MEMBRO
-        # ==========================
-        result = conn.execute(text("""
-            SELECT 
-                m.id,
-                m.nome,
-                COUNT(CASE WHEN p.presente = true THEN 1 END) as presencas
-            FROM membros m
-            LEFT JOIN ebd_presenca p 
-                ON p.fk_membro = m.id
-                AND p.fk_turma = :turma
-                AND p.fk_igreja = :igreja
-            WHERE m.fk_turma = :turma
-            GROUP BY m.id, m.nome
-            ORDER BY presencas DESC
-        """), {
-            "turma": turma,
             "igreja": user["igreja_id"]
         })
 
-        lista = []
-
-        for r in result:
-            freq = 0
-
-            if total > 0:
-                freq = round((r.presencas / total) * 100, 1)
-
-            lista.append({
-                "id": r.id,
-                "nome": r.nome,
-                "presencas": r.presencas,
-                "faltas": total - r.presencas,
-                "frequencia": freq
-            })
-
-        return {
-            "total_aulas": total,
-            "dados": lista
-        }
-
-
-@app.get("/leitura/hoje")
-def leitura_hoje(user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-
-        dia = conn.execute(text("""
-            SELECT COUNT(*) as total
-            FROM leitura_progresso
-            WHERE fk_membro = :membro
-        """), {"membro": user["membro_id"]}).fetchone()
-
-        dia_atual = (dia.total or 0) + 1
-
-        leitura = conn.execute(text("""
-            SELECT * FROM leitura_plano
-            WHERE dia = :dia
-        """), {"dia": dia_atual}).fetchone()
-
-        return dict(leitura._mapping) if leitura else {}
+        return [dict(row._mapping) for row in result]
     
-
-@app.post("/leitura/concluir")
-def concluir_leitura(user=Depends(verificar_token)):
-
-    from datetime import date
-
-    with engine.connect() as conn:
-
-        # ==========================
-        # SALVAR PROGRESSO
-        # ==========================
-        conn.execute(text("""
-            INSERT INTO leitura_progresso (
-                fk_membro, data, fk_igreja
-            )
-            VALUES (:membro, CURRENT_DATE, :igreja)
-        """), {
-            "membro": user["membro_id"],
-            "igreja": user["igreja_id"]
-        })
-
-        # ==========================
-        # CALCULAR STREAK REAL
-        # ==========================
-        dias = conn.execute(text("""
-            SELECT DISTINCT data
-            FROM leitura_progresso
-            WHERE fk_membro = :membro
-            ORDER BY data DESC
-        """), {"membro": user["membro_id"]}).fetchall()
-
-        streak = 0
-        hoje = date.today()
-
-        from datetime import timedelta
-
-        for d in dias:
-            if d.data == hoje - timedelta(days=streak):
-                streak += 1
-            else:
-                break
-
-        # ==========================
-        # MEDALHAS
-        # ==========================
-        medalhas = {
-            3: "Iniciante 🟢",
-            7: "Fiel 🔵",
-            15: "Discipulado 🟣",
-            30: "Comprometido 🟡",
-            60: "Constante 🔥",
-            100: "Guerreiro da Fé 👑"
-        }
-
-        if streak in medalhas:
-
-            ja_tem = conn.execute(text("""
-                SELECT 1 FROM leitura_medalhas
-                WHERE fk_membro = :membro
-                AND medalha = :medalha
-            """), {
-                "membro": user["membro_id"],
-                "medalha": medalhas[streak]
-            }).fetchone()
-
-            if not ja_tem:
-                conn.execute(text("""
-                    INSERT INTO leitura_medalhas (fk_membro, medalha)
-                    VALUES (:membro, :medalha)
-                """), {
-                    "membro": user["membro_id"],
-                    "medalha": medalhas[streak]
-                })
-
-        conn.commit()
-
-    return {
-        "status": "ok",
-        "streak": streak
-    }
-
-
-
-
-@app.get("/leitura/hoje")
-def leitura_hoje(user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-
-        progresso = conn.execute(text("""
-            SELECT COUNT(*) as total
-            FROM leitura_progresso
-            WHERE fk_membro = :membro
-        """), {"membro": user["membro_id"]}).fetchone()
-
-        dia_atual = (progresso.total or 0) + 1
-
-        leitura = conn.execute(text("""
-            SELECT dia, titulo, leitura
-            FROM leitura_plano
-            WHERE dia = :dia
-        """), {"dia": dia_atual}).fetchone()
-
-        return {
-            "dia": leitura.dia if leitura else dia_atual,
-            "titulo": leitura.titulo if leitura else "Plano não encontrado",
-            "leitura": leitura.leitura if leitura else ""
-        }
-
-
-@app.get("/leitura/streak")
-def leitura_streak(user=Depends(verificar_token)):
-
-    from datetime import date, timedelta
-
-    with engine.connect() as conn:
-
-        dias = conn.execute(text("""
-            SELECT DISTINCT data
-            FROM leitura_progresso
-            WHERE fk_membro = :membro
-            ORDER BY data DESC
-        """), {"membro": user["membro_id"]}).fetchall()
-
-        streak = 0
-        hoje = date.today()
-
-        for d in dias:
-            if d.data == hoje - timedelta(days=streak):
-                streak += 1
-            else:
-                break
-
-        return {"streak": streak}
-
-
-@app.get("/leitura/medalhas")
-def medalhas(user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-
-        result = conn.execute(text("""
-            SELECT medalha, data
-            FROM leitura_medalhas
-            WHERE fk_membro = :membro
-            ORDER BY data DESC
-        """), {"membro": user["membro_id"]})
-
-        return [dict(r._mapping) for r in result]
-    
-
-
-@app.get("/leitura/ranking")
-def ranking(user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-
-        result = conn.execute(text("""
-            SELECT m.nome, COUNT(p.id) as total
-            FROM leitura_progresso p
-            JOIN membros m ON m.id = p.fk_membro
-            WHERE p.fk_igreja = :igreja
-            GROUP BY m.nome
-            ORDER BY total DESC
-            LIMIT 10
-        """), {"igreja": user["igreja_id"]})
-
-        return [dict(r._mapping) for r in result]
     
 
 
@@ -1152,58 +720,6 @@ def listar_carteirinhas(user=Depends(verificar_token)):
 
     return [dict(r._mapping) for r in res]
 
-
-
-
-# ==========================================
-# FAMILIAS
-# ==========================================
-
-@app.post("/familias")
-def criar_familia(dados: dict, user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-        conn.execute(text("""
-            INSERT INTO familias (
-                nome,
-                telefone,
-                endereco,
-                observacoes,
-                fk_igreja
-            )
-            VALUES (
-                :nome,
-                :telefone,
-                :endereco,
-                :observacoes,
-                :igreja
-            )
-        """), {
-            "nome": dados.get("nome"),
-            "telefone": dados.get("telefone"),
-            "endereco": dados.get("endereco"),
-            "observacoes": dados.get("observacoes"),
-            "igreja": user["igreja_id"]
-        })
-
-        conn.commit()
-
-    return {"status": "ok"}
-
-
-@app.get("/familias")
-def listar_familias(user=Depends(verificar_token)):
-
-    with engine.connect() as conn:
-        result = conn.execute(text("""
-            SELECT * FROM familias
-            WHERE fk_igreja = :igreja
-        """), {
-            "igreja": user["igreja_id"]
-        })
-
-        return [dict(row._mapping) for row in result]
-    
 
 
 
@@ -2580,6 +2096,496 @@ def licao_atual(user=Depends(verificar_token)):
             "descricao": licao.descricao
         }
     
+
+# ==========================================
+# EBD DO MEMBRO (CORRIGIDO PROFISSIONAL)
+# ==========================================
+
+from datetime import date
+
+@app.get("/membro/ebd")
+def ebd_do_membro(user=Depends(verificar_token)):
+
+    membro_id = user.get("membro_id")
+
+    if not membro_id:
+        raise HTTPException(status_code=400, detail="Membro não identificado")
+
+    with engine.connect() as conn:
+
+        # ==========================
+        # BUSCAR MEMBRO (AGORA COM TURMA)
+        # ==========================
+        membro = conn.execute(text("""
+            SELECT nome, fk_turma
+            FROM membros
+            WHERE id = :id
+        """), {"id": membro_id}).fetchone()
+
+        if not membro:
+            raise HTTPException(status_code=404, detail="Membro não encontrado")
+
+        # ==========================
+        # DEFINIR TURMA (AUTO + FALLBACK)
+        # ==========================
+        turma_db = None
+
+        # 🔹 1. tenta pela fk_turma (manual)
+        if membro.fk_turma:
+            turma_db = conn.execute(text("""
+                SELECT t.id, t.nome, m.nome as professor
+                FROM ebd_turmas t
+                LEFT JOIN membros m ON m.id = t.professor_id
+                WHERE t.id = :turma
+                AND t.fk_igreja = :igreja
+            """), {
+                "turma": membro.fk_turma,
+                "igreja": user["igreja_id"]
+            }).fetchone()
+
+        # 🔹 2. fallback automático por idade
+        if not turma_db:
+
+            idade = 0
+
+            membro_data = conn.execute(text("""
+                SELECT data_nascimento
+                FROM membros
+                WHERE id = :id
+            """), {"id": membro_id}).fetchone()
+
+            if membro_data and membro_data.data_nascimento:
+                idade = date.today().year - membro_data.data_nascimento.year
+
+            if idade <= 6:
+                nome_turma = "Berçário"
+            elif idade <= 11:
+                nome_turma = "Infantil"
+            elif idade <= 18:
+                nome_turma = "Adolescente"
+            elif idade <= 35:
+                nome_turma = "Jovens"
+            else:
+                nome_turma = "Adulto"
+
+            turma_db = conn.execute(text("""
+                SELECT t.id, t.nome, m.nome as professor
+                FROM ebd_turmas t
+                LEFT JOIN membros m ON m.id = t.professor_id
+                WHERE LOWER(t.nome) = LOWER(:nome)
+                AND t.fk_igreja = :igreja
+            """), {
+                "nome": nome_turma,
+                "igreja": user["igreja_id"]
+            }).fetchone()
+
+        # ==========================
+        # BUSCAR LIÇÃO DA TURMA
+        # ==========================
+        licao = None
+
+        if turma_db:
+            licao = conn.execute(text("""
+                SELECT titulo, descricao
+                FROM ebd_licoes
+                WHERE fk_turma = :turma
+                ORDER BY data DESC
+                LIMIT 1
+            """), {
+                "turma": turma_db.id
+            }).fetchone()
+
+        # ==========================
+        # RETORNO FINAL
+        # ==========================
+        return {
+            "nome": membro.nome,
+            "turma": turma_db.nome if turma_db else "Sem turma",
+            "professor": turma_db.professor if turma_db else "Não definido",
+            "licao": licao.titulo if licao else "Sem lição",
+            "descricao": licao.descricao if licao else "",
+            "frequencia": 75
+        }
+
+
+@app.put("/ebd/turmas/{id}")
+def atualizar_turma(id: int, dados: dict, user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+        conn.execute(text("""
+            UPDATE ebd_turmas
+            SET professor_id = :professor
+            WHERE id = :id
+            AND fk_igreja = :igreja
+        """), {
+            "professor": dados.get("professor_id"),
+            "id": id,
+            "igreja": user["igreja_id"]
+        })
+
+        conn.commit()
+
+    return {"status": "ok"}
+
+@app.post("/ebd/licao")
+def salvar_licao(dados: dict, user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO ebd_licoes (
+                titulo,
+                descricao,
+                fk_turma,
+                fk_igreja,
+                data
+            )
+            VALUES (
+                :titulo,
+                :descricao,
+                :turma,
+                :igreja,
+                NOW()
+            )
+        """), {
+            "titulo": dados.get("titulo"),
+            "descricao": dados.get("descricao"),
+            "turma": dados.get("fk_turma"),
+            "igreja": user["igreja_id"]
+        })
+
+        conn.commit()
+
+    return {"status": "ok"}
+
+
+
+@app.post("/ebd/presenca")
+def salvar_presenca(dados: dict, user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+
+        for item in dados.get("presenca", []):
+
+            print("ITEM RECEBIDO:", item)  # 🔥 DEBUG
+
+            membro_id = item.get("membro_id")
+            turma_id = item.get("turma_id")
+            presente = item.get("presente", True)
+
+            if not membro_id or not turma_id:
+                continue  # 🔥 evita quebrar
+
+            conn.execute(text("""
+                INSERT INTO ebd_presenca (
+                    fk_membro,
+                    fk_turma,
+                    presente,
+                    fk_igreja
+                )
+                VALUES (
+                    :membro,
+                    :turma,
+                    :presente,
+                    :igreja
+                )
+            """), {
+                "membro": membro_id,
+                "turma": turma_id,
+                "presente": presente,
+                "igreja": user["igreja_id"]
+            })
+
+        conn.commit()
+
+    return {"status": "ok"}
+
+
+@app.get("/ebd/membros")
+def membros_por_turma(turma: int, user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT id, nome
+            FROM membros
+            WHERE fk_turma = :turma
+        """), {
+            "turma": turma
+        })
+
+        return [dict(r._mapping) for r in result]
+
+
+@app.get("/ebd/ultima")
+def ultima_presenca(turma: int, user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT fk_membro, presente
+            FROM ebd_presenca
+            WHERE fk_turma = :turma
+            ORDER BY data DESC
+        """), {
+            "turma": turma
+        })
+
+        return [dict(r._mapping) for r in result]
+    
+
+@app.get("/ebd/relatorio")
+def relatorio_ebd(turma: int, user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+
+        # ==========================
+        # TOTAL DE AULAS DA TURMA
+        # ==========================
+        total_aulas = conn.execute(text("""
+            SELECT COUNT(DISTINCT data) as total
+            FROM ebd_presenca
+            WHERE fk_turma = :turma
+            AND fk_igreja = :igreja
+        """), {
+            "turma": turma,
+            "igreja": user["igreja_id"]
+        }).fetchone()
+
+        total = total_aulas.total if total_aulas else 0
+
+        # ==========================
+        # PRESENÇA POR MEMBRO
+        # ==========================
+        result = conn.execute(text("""
+            SELECT 
+                m.id,
+                m.nome,
+                COUNT(CASE WHEN p.presente = true THEN 1 END) as presencas
+            FROM membros m
+            LEFT JOIN ebd_presenca p 
+                ON p.fk_membro = m.id
+                AND p.fk_turma = :turma
+                AND p.fk_igreja = :igreja
+            WHERE m.fk_turma = :turma
+            GROUP BY m.id, m.nome
+            ORDER BY presencas DESC
+        """), {
+            "turma": turma,
+            "igreja": user["igreja_id"]
+        })
+
+        lista = []
+
+        for r in result:
+            freq = 0
+
+            if total > 0:
+                freq = round((r.presencas / total) * 100, 1)
+
+            lista.append({
+                "id": r.id,
+                "nome": r.nome,
+                "presencas": r.presencas,
+                "faltas": total - r.presencas,
+                "frequencia": freq
+            })
+
+        return {
+            "total_aulas": total,
+            "dados": lista
+        }
+
+
+@app.get("/leitura/hoje")
+def leitura_hoje(user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+
+        dia = conn.execute(text("""
+            SELECT COUNT(*) as total
+            FROM leitura_progresso
+            WHERE fk_membro = :membro
+        """), {"membro": user["membro_id"]}).fetchone()
+
+        dia_atual = (dia.total or 0) + 1
+
+        leitura = conn.execute(text("""
+            SELECT * FROM leitura_plano
+            WHERE dia = :dia
+        """), {"dia": dia_atual}).fetchone()
+
+        return dict(leitura._mapping) if leitura else {}
+    
+
+@app.post("/leitura/concluir")
+def concluir_leitura(user=Depends(verificar_token)):
+
+    from datetime import date
+
+    with engine.connect() as conn:
+
+        # ==========================
+        # SALVAR PROGRESSO
+        # ==========================
+        conn.execute(text("""
+            INSERT INTO leitura_progresso (
+                fk_membro, data, fk_igreja
+            )
+            VALUES (:membro, CURRENT_DATE, :igreja)
+        """), {
+            "membro": user["membro_id"],
+            "igreja": user["igreja_id"]
+        })
+
+        # ==========================
+        # CALCULAR STREAK REAL
+        # ==========================
+        dias = conn.execute(text("""
+            SELECT DISTINCT data
+            FROM leitura_progresso
+            WHERE fk_membro = :membro
+            ORDER BY data DESC
+        """), {"membro": user["membro_id"]}).fetchall()
+
+        streak = 0
+        hoje = date.today()
+
+        from datetime import timedelta
+
+        for d in dias:
+            if d.data == hoje - timedelta(days=streak):
+                streak += 1
+            else:
+                break
+
+        # ==========================
+        # MEDALHAS
+        # ==========================
+        medalhas = {
+            3: "Iniciante 🟢",
+            7: "Fiel 🔵",
+            15: "Discipulado 🟣",
+            30: "Comprometido 🟡",
+            60: "Constante 🔥",
+            100: "Guerreiro da Fé 👑"
+        }
+
+        if streak in medalhas:
+
+            ja_tem = conn.execute(text("""
+                SELECT 1 FROM leitura_medalhas
+                WHERE fk_membro = :membro
+                AND medalha = :medalha
+            """), {
+                "membro": user["membro_id"],
+                "medalha": medalhas[streak]
+            }).fetchone()
+
+            if not ja_tem:
+                conn.execute(text("""
+                    INSERT INTO leitura_medalhas (fk_membro, medalha)
+                    VALUES (:membro, :medalha)
+                """), {
+                    "membro": user["membro_id"],
+                    "medalha": medalhas[streak]
+                })
+
+        conn.commit()
+
+    return {
+        "status": "ok",
+        "streak": streak
+    }
+
+
+
+
+@app.get("/leitura/hoje")
+def leitura_hoje(user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+
+        progresso = conn.execute(text("""
+            SELECT COUNT(*) as total
+            FROM leitura_progresso
+            WHERE fk_membro = :membro
+        """), {"membro": user["membro_id"]}).fetchone()
+
+        dia_atual = (progresso.total or 0) + 1
+
+        leitura = conn.execute(text("""
+            SELECT dia, titulo, leitura
+            FROM leitura_plano
+            WHERE dia = :dia
+        """), {"dia": dia_atual}).fetchone()
+
+        return {
+            "dia": leitura.dia if leitura else dia_atual,
+            "titulo": leitura.titulo if leitura else "Plano não encontrado",
+            "leitura": leitura.leitura if leitura else ""
+        }
+
+
+@app.get("/leitura/streak")
+def leitura_streak(user=Depends(verificar_token)):
+
+    from datetime import date, timedelta
+
+    with engine.connect() as conn:
+
+        dias = conn.execute(text("""
+            SELECT DISTINCT data
+            FROM leitura_progresso
+            WHERE fk_membro = :membro
+            ORDER BY data DESC
+        """), {"membro": user["membro_id"]}).fetchall()
+
+        streak = 0
+        hoje = date.today()
+
+        for d in dias:
+            if d.data == hoje - timedelta(days=streak):
+                streak += 1
+            else:
+                break
+
+        return {"streak": streak}
+
+
+@app.get("/leitura/medalhas")
+def medalhas(user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(text("""
+            SELECT medalha, data
+            FROM leitura_medalhas
+            WHERE fk_membro = :membro
+            ORDER BY data DESC
+        """), {"membro": user["membro_id"]})
+
+        return [dict(r._mapping) for r in result]
+    
+
+
+@app.get("/leitura/ranking")
+def ranking(user=Depends(verificar_token)):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(text("""
+            SELECT m.nome, COUNT(p.id) as total
+            FROM leitura_progresso p
+            JOIN membros m ON m.id = p.fk_membro
+            WHERE p.fk_igreja = :igreja
+            GROUP BY m.nome
+            ORDER BY total DESC
+            LIMIT 10
+        """), {"igreja": user["igreja_id"]})
+
+        return [dict(r._mapping) for r in result]
+    
+
+
+
     
 
     # ==========================
