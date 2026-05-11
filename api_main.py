@@ -477,54 +477,57 @@ def get_membro(id: int, user=Depends(verificar_token)):
             raise HTTPException(status_code=404, detail="Membro não encontrado")
 
         return dict(result._mapping)
-
+    
+    
 
 # ==========================================
 # ATUALIZAR MEMBRO
 # ==========================================
 
 @app.put("/membros/{id}")
-def atualizar_membro(id: int, dados: dict, user=Depends(verificar_token)):
+def atualizar_membro(id: int, dados: dict, user=Depends(get_user_from_token)):
 
-    with engine.connect() as conn:
-        conn.execute(text("""
-            UPDATE membros
-            SET nome=:nome,
-                telefone=:telefone,
-                endereco=:endereco,
-                bairro=:bairro,
-                cep=:cep,
-                municipio=:municipio,
-                estado=:estado,
-                email=:email,
-                cargo=:cargo,
-                fk_congregacao=:fk_congregacao,
-                fk_familia=:fk_familia,
-                data_nascimento=:data_nascimento
-            WHERE id=:id AND fk_igreja=:igreja
-        """), {
-            "id": id,
-            "nome": dados.get("nome"),
-            "telefone": dados.get("telefone"),
-            "endereco": dados.get("endereco"),
-            "bairro": dados.get("bairro"),
-            "cep": dados.get("cep"),
-            "municipio": dados.get("municipio"),
-            "estado": dados.get("estado"),
-            "email": dados.get("email"),
+    try:
+        with engine.begin() as conn:
 
-            # 🔥 ESSA LINHA RESOLVE TUDO
-            "cargo": dados.get("cargo") or "Membro",
+            conn.execute(text("""
+                UPDATE membros SET
+                    nome = :nome,
+                    telefone = :telefone,
+                    endereco = :endereco,
+                    bairro = :bairro,
+                    cep = :cep,
+                    municipio = :municipio,
+                    estado = :estado,
+                    email = :email,
+                    cargo = :cargo,
+                    fk_congregacao = :fk_congregacao,
+                    fk_familia = :fk_familia,
+                    data_nascimento = :data_nascimento
+                WHERE id = :id
+                AND fk_igreja = :igreja
+            """), {
+                "id": id,
+                "nome": dados.get("nome"),
+                "telefone": dados.get("telefone"),
+                "endereco": dados.get("endereco"),
+                "bairro": dados.get("bairro"),
+                "cep": dados.get("cep"),
+                "municipio": dados.get("municipio"),
+                "estado": dados.get("estado"),
+                "email": dados.get("email"),
+                "cargo": dados.get("cargo"),
+                "fk_congregacao": dados.get("fk_congregacao"),
+                "fk_familia": dados.get("fk_familia"),
+                "data_nascimento": dados.get("data_nascimento"),
+                "igreja": user["igreja_id"]
+            })
 
-            "fk_congregacao": dados.get("fk_congregacao"),
-            "fk_familia": dados.get("fk_familia"),
-            "data_nascimento": dados.get("data_nascimento"),
-            "igreja": user["igreja_id"]
-        })
+        return {"status": "membro atualizado"}
 
-        conn.commit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    return {"status": "ok"}
 
 
 
@@ -535,20 +538,26 @@ def atualizar_membro(id: int, dados: dict, user=Depends(verificar_token)):
 # ==========================================
 
 @app.delete("/membros/{id}")
-def deletar_membro(id: int, user=Depends(verificar_token)):
+def deletar_membro(id: int, user=Depends(get_user_from_token)):
 
-    with engine.connect() as conn:
-        conn.execute(text("""
-            DELETE FROM membros
-            WHERE id=:id AND fk_igreja=:igreja
-        """), {
-            "id": id,
-            "igreja": user["igreja_id"]
-        })
+    try:
+        with engine.begin() as conn:
 
-        conn.commit()
+            conn.execute(text("""
+                DELETE FROM membros
+                WHERE id = :id
+                AND fk_igreja = :igreja
+            """), {
+                "id": id,
+                "igreja": user["igreja_id"]
+            })
 
-    return {"status": "ok"}
+        return {"status": "membro deletado"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
 
 
 
