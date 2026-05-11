@@ -14,6 +14,8 @@ import os
 import shutil
 
 
+
+
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends
 
@@ -33,14 +35,25 @@ app = FastAPI(title="Rebanho360 API FINAL")
 
 
 
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # depois restringe
+    allow_origins=origins,  # 🔥 NÃO usar "*"
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
+
+
+
+
 # ==========================================
 # UPLOADS
 # ==========================================
@@ -532,10 +545,6 @@ def atualizar_membro(id: int, dados: dict, user=Depends(get_user_from_token)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-
-
-
 # ==========================================
 # DELETAR MEMBRO
 # ==========================================
@@ -618,8 +627,6 @@ def listar_familias(user=Depends(get_user_from_token)):
         return [dict(row._mapping) for row in result]
     
     
-
-
 
 # ==========================================
 # CARTEIRINHA
